@@ -6,32 +6,33 @@ from PySide.QtCore import QPointF, QRectF
 
 FONT = '-misc-fixed-medium-r-normal--13-120-75-75-c-80-iso8859-1'
 
-SCROLL = 10
+SCROLL = 200
 
 class View(QtGui.QGraphicsView):
     def __init__(self, parent=None):
         super(View, self).__init__(parent)
-        self.up = self.anim(parent.sceneRect().size(), 1)
-        self.down = self.anim(parent.sceneRect().size(), -1)
-        self.scroll = 0.
         self.setFrameStyle(0)
 
-    def anim(self, size, direction):
-        a = QtCore.QPropertyAnimation(self, 'sceneRect')
-        #a.setStartValue(QRectF(QPointF(0., self.scroll),  size))
-        a.setEndValue(QRectF(QPointF(0., direction * 100.),  size))
-        a.setDuration(1000)
-        a.setEasingCurve(QtCore.QEasingCurve.OutQuad)
+        # Scrolling
+        self.size = parent.sceneRect().size()
+        self.anim = QtCore.QPropertyAnimation(self, 'sceneRect')
+        self.anim.setDuration(1000)
+        self.anim.setEasingCurve(QtCore.QEasingCurve.OutQuad)
 
-        return a
-        
+    def scroll(self, size, anim, dist):
+        current = anim.currentValue()
+        anim.stop()
+        if current:
+            anim.setEndValue(QRectF(QPointF(0., current.y() + dist),  size))
+        else:
+            anim.setEndValue(QRectF(QPointF(0., dist),  size))
+        anim.start()
+
     def keyReleaseEvent(self, event):
         if event.text() == 'k':
-            self.scroll -= 100.
-            self.down.start()
+            self.scroll(self.size, self.anim, -SCROLL)
         elif event.text() == 'j':
-            self.scroll += 100.
-            self.up.start()
+            self.scroll(self.size, self.anim, SCROLL)
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
