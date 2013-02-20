@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+import sys
+from PySide import QtCore, QtGui
+from PySide.QtCore import QPointF, QRectF
+
+FONT = '-misc-fixed-medium-r-normal--13-120-75-75-c-80-iso8859-1'
+
+SCROLL = 10
+
+class View(QtGui.QGraphicsView):
+    def __init__(self, parent=None):
+        super(View, self).__init__(parent)
+        self.up = self.anim(parent.sceneRect().size(), 1)
+        self.down = self.anim(parent.sceneRect().size(), -1)
+        self.scroll = 0.
+        self.setFrameStyle(0)
+
+    def anim(self, size, direction):
+        a = QtCore.QPropertyAnimation(self, 'sceneRect')
+        #a.setStartValue(QRectF(QPointF(0., self.scroll),  size))
+        a.setEndValue(QRectF(QPointF(0., direction * 100.),  size))
+        a.setDuration(1000)
+        a.setEasingCurve(QtCore.QEasingCurve.OutQuad)
+
+        return a
+        
+    def keyReleaseEvent(self, event):
+        if event.text() == 'k':
+            self.scroll -= 100.
+            self.down.start()
+        elif event.text() == 'j':
+            self.scroll += 100.
+            self.up.start()
+
+if __name__ == '__main__':
+    app = QtGui.QApplication(sys.argv)
+    scene = QtGui.QGraphicsScene()
+    scene.setBackgroundBrush(QtCore.Qt.black)
+
+    # xlsfonts gets you the list
+    font = QtGui.QFont(FONT)
+    font.setRawMode(True)
+    font.rawName() # Should be there to display the right font, bizarrely
+
+    effects = []
+    items = []
+    for i in range(24):
+        effects.append(QtGui.QGraphicsBlurEffect())
+        effects[i].setBlurRadius(8)
+
+        items.append(QtGui.QGraphicsTextItem('%02d:00' % i))
+        items[i].setDefaultTextColor(QtCore.Qt.white)
+        items[i].setFont(font)
+        items[i].setPos(0, i * 15)
+        # items[i].setGraphicsEffect(effects[i])
+        scene.addItem(items[i])
+
+    view = View(scene)
+    view.setDragMode(View.ScrollHandDrag)
+    view.setWindowTitle("Calendar")
+    view.show()
+    app.exec_()
