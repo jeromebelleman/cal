@@ -1,17 +1,34 @@
 #!/usr/bin/env python
 
 import sys
+from datetime import date, timedelta
+import math
+
 from PySide import QtCore, QtGui
 from PySide.QtCore import QPointF, QRectF
 
-FONT = '-misc-fixed-medium-r-normal--13-120-75-75-c-80-iso8859-1'
+MEDIUM = '-misc-fixed-medium-r-normal--13-120-75-75-c-80-iso8859-1'
+BOLD = '-misc-fixed-bold-r-normal--13-120-75-75-c-80-iso8859-1'
 
 SCROLL = 200
+HEIGHT = 15.
 
 class View(QtGui.QGraphicsView):
     def __init__(self, parent=None):
         super(View, self).__init__(parent)
         self.setFrameStyle(0)
+
+        # Fonts
+        fonts = {}
+
+        # xlsfonts gets you the list
+        self.medium = QtGui.QFont(MEDIUM)
+        self.medium.setRawMode(True)
+        self.medium.rawName() # Needed to display the right font, bizarrely
+
+        self.bold = QtGui.QFont(BOLD)
+        self.bold.setRawMode(True)
+        self.bold.rawName() # Needed to display the right font, bizarrely
 
         # Disable normal scrolling
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -29,49 +46,68 @@ class View(QtGui.QGraphicsView):
         current = anim.currentValue()
         anim.stop()
         if current:
-            anim.setEndValue(QRectF(QPointF(0., current.y() + dist), size))
+            anim.setEndValue(QRectF(QPointF(0, current.y() + dist), size))
         else:
-            anim.setEndValue(QRectF(QPointF(0., dist), size))
+            anim.setEndValue(QRectF(QPointF(0, dist), size))
         anim.start()
 
     def keyReleaseEvent(self, event):
+        # FIXME Should it be relative to view size instead?
         if event.text() == 'k':
             self.scroll(self.scenesize(), self.anim, -SCROLL)
         elif event.text() == 'j':
             self.scroll(self.scenesize(), self.anim, SCROLL)
 
     def resizeEvent(self, event):
-        self.viewsize = event.size()
+        if event.oldSize() != QtCore.QSize(-1, -1): # First size is bollocks
+            viewsize = event.size()
 
-        self.line = QtGui.QGraphicsLineItem(0., 0., self.viewsize.width(), 0.)
-        self.line.setPen(QtGui.QColor(QtCore.Qt.white))
-        self.scene().addItem(self.line)
+            self.setSceneRect(QRectF(QPointF(0, 0), event.size()))
 
-if __name__ == '__main__':
+            # Compute how many days can fit
+            maxdays = int(math.ceil(viewsize.height() / (24 * HEIGHT)))
+
+
+            for j in range(maxdays):
+                y = j * 24 * HEIGHT
+
+                # Draw line
+                self.line = QtGui.QGraphicsLineItem(0, y + 5,
+                                                    viewsize.width(), y + 5)
+                self.line.setPen(QtGui.QColor(QtCore.Qt.white))
+                self.scene().addItem(self.line)
+
+                # Display days
+                t = (date.today() + timedelta(j)).strftime('%d %B')
+                for i, c in enumerate(t):
+                    item = QtGui.QGraphicsTextItem(c)
+                    item.setDefaultTextColor(QtCore.Qt.white)
+                    item.setFont(self.bold)
+                    item.setPos(0, y + i * HEIGHT)
+                    self.scene().addItem(item)
+
+                # Display hours
+                # self.effects = []
+                for i in range(24):
+                    # effects.append(QtGui.QGraphicsBlurEffect())
+                    # effects[i].setBlurRadius(8)
+
+                    item = QtGui.QGraphicsTextItem('%02d:00' % i)
+                    item.setDefaultTextColor(QtCore.Qt.white)
+                    item.setFont(self.medium)
+                    item.setPos(20, y + i * HEIGHT)
+                    # items[i].setGraphicsEffect(effects[i])
+                    self.scene().addItem(item)
+
+def main():
     app = QtGui.QApplication(sys.argv)
     scene = QtGui.QGraphicsScene()
     scene.setBackgroundBrush(QtCore.Qt.black)
-
-    # xlsfonts gets you the list
-    font = QtGui.QFont(FONT)
-    font.setRawMode(True)
-    font.rawName() # Should be there to display the right font, bizarrely
-
-    effects = []
-    items = []
-
-    for i in range(24):
-        # effects.append(QtGui.QGraphicsBlurEffect())
-        # effects[i].setBlurRadius(8)
-
-        items.append(QtGui.QGraphicsTextItem('%02d:00' % i))
-        items[i].setDefaultTextColor(QtCore.Qt.white)
-        items[i].setFont(font)
-        items[i].setPos(0, i * 15)
-        # items[i].setGraphicsEffect(effects[i])
-        scene.addItem(items[i])
 
     view = View(scene)
     view.setWindowTitle("Calendar")
     view.show()
     app.exec_()
+
+if __name__ == '__main__':
+    main()
