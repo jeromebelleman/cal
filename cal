@@ -13,26 +13,39 @@ class View(QtGui.QGraphicsView):
         super(View, self).__init__(parent)
         self.setFrameStyle(0)
 
+        # Disable normal scrolling
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
         # Scrolling
-        self.size = parent.sceneRect().size()
         self.anim = QtCore.QPropertyAnimation(self, 'sceneRect')
         self.anim.setDuration(1000)
         self.anim.setEasingCurve(QtCore.QEasingCurve.OutQuad)
+
+    def scenesize(self):
+        return self.sceneRect().size()
 
     def scroll(self, size, anim, dist):
         current = anim.currentValue()
         anim.stop()
         if current:
-            anim.setEndValue(QRectF(QPointF(0., current.y() + dist),  size))
+            anim.setEndValue(QRectF(QPointF(0., current.y() + dist), size))
         else:
-            anim.setEndValue(QRectF(QPointF(0., dist),  size))
+            anim.setEndValue(QRectF(QPointF(0., dist), size))
         anim.start()
 
     def keyReleaseEvent(self, event):
         if event.text() == 'k':
-            self.scroll(self.size, self.anim, -SCROLL)
+            self.scroll(self.scenesize(), self.anim, -SCROLL)
         elif event.text() == 'j':
-            self.scroll(self.size, self.anim, SCROLL)
+            self.scroll(self.scenesize(), self.anim, SCROLL)
+
+    def resizeEvent(self, event):
+        self.viewsize = event.size()
+
+        self.line = QtGui.QGraphicsLineItem(0., 0., self.viewsize.width(), 0.)
+        self.line.setPen(QtGui.QColor(QtCore.Qt.white))
+        self.scene().addItem(self.line)
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
@@ -46,9 +59,10 @@ if __name__ == '__main__':
 
     effects = []
     items = []
+
     for i in range(24):
-        effects.append(QtGui.QGraphicsBlurEffect())
-        effects[i].setBlurRadius(8)
+        # effects.append(QtGui.QGraphicsBlurEffect())
+        # effects[i].setBlurRadius(8)
 
         items.append(QtGui.QGraphicsTextItem('%02d:00' % i))
         items[i].setDefaultTextColor(QtCore.Qt.white)
@@ -58,7 +72,6 @@ if __name__ == '__main__':
         scene.addItem(items[i])
 
     view = View(scene)
-    view.setDragMode(View.ScrollHandDrag)
     view.setWindowTitle("Calendar")
     view.show()
     app.exec_()
