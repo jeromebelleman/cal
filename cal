@@ -51,12 +51,21 @@ class View(QtGui.QGraphicsView):
             anim.setEndValue(QRectF(QPointF(0, dist), size))
         anim.start()
 
-    def keyReleaseEvent(self, event):
+    def keyPressEvent(self, event):
         # FIXME Should it be relative to view size instead?
         if event.text() == 'k':
             self.scroll(self.scenesize(), self.anim, -SCROLL)
         elif event.text() == 'j':
             self.scroll(self.scenesize(), self.anim, SCROLL)
+
+    def vprint(self, scene, string, font, colour, y, offset):
+        for i, c in enumerate(string):
+            item = QtGui.QGraphicsTextItem(c)
+            item.setDefaultTextColor(colour)
+            item.setFont(font)
+            item.setPos(0, y + (i + offset) * HEIGHT)
+            scene.addItem(item)
+        return i
 
     def resizeEvent(self, event):
         if event.oldSize() != QtCore.QSize(-1, -1): # First size is bollocks
@@ -66,7 +75,6 @@ class View(QtGui.QGraphicsView):
 
             # Compute how many days can fit
             maxdays = int(math.ceil(viewsize.height() / (24 * HEIGHT)))
-
 
             for j in range(maxdays):
                 y = j * 24 * HEIGHT
@@ -78,13 +86,11 @@ class View(QtGui.QGraphicsView):
                 self.scene().addItem(self.line)
 
                 # Display days
-                t = (date.today() + timedelta(j)).strftime('%d %B')
-                for i, c in enumerate(t):
-                    item = QtGui.QGraphicsTextItem(c)
-                    item.setDefaultTextColor(QtCore.Qt.white)
-                    item.setFont(self.bold)
-                    item.setPos(0, y + i * HEIGHT)
-                    self.scene().addItem(item)
+                t = (date.today() + timedelta(j)).strftime('%A %d %B').split()
+                offset = self.vprint(self.scene(), t[0], self.bold,
+                                     QtCore.Qt.cyan, y, 0)
+                offset = self.vprint(self.scene(), ' '.join(t[1:]), self.bold,
+                                     QtCore.Qt.white, y, offset + 2)
 
                 # Display hours
                 # self.effects = []
