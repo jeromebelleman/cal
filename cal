@@ -48,12 +48,14 @@ class View(QtGui.QGraphicsView):
         current = anim.currentValue()
         end = current.y() + dist if current else dist
 
-        # FIXME Dirty
-        day = int(end / (24 * HEIGHT))
-        if day not in self.days:
-            self.addday(self.scene(), self.viewsize, self.days,
-                        date.today() + timedelta(day),
-                        day * 24 * HEIGHT)
+        # Find out which day will be visible in the end
+        if dist < 0:
+            day = math.floor((end / (24 * HEIGHT)))
+        else:
+            day = math.floor(((end + self.viewsize.height())/ (24 * HEIGHT)))
+        self.addday(self.scene(), self.viewsize, self.days, int(day))
+
+        # TODO Remove faraway random days from scenes
 
         # Scroll
         anim.stop()
@@ -76,14 +78,18 @@ class View(QtGui.QGraphicsView):
             scene.addItem(item)
         return i
 
-    def addday(self, scene, viewsize, days, day, y):
+    def addday(self, scene, viewsize, days, day):
+        if day in self.days:
+            return
+
+        y = day * 24 * HEIGHT
         # Draw line
         line = QtGui.QGraphicsLineItem(0, y + 5, viewsize.width(), y + 5)
         line.setPen(QtGui.QColor(QtCore.Qt.white))
         scene.addItem(line)
 
-        # Display day
-        t = day.strftime('%A %d %B').split()
+        # Display day label
+        t = (date.today() + timedelta(day)).strftime('%A %d %B').split()
         offset = self.vprint(scene, t[0], self.bold, QtCore.Qt.cyan, y, 0)
         offset = self.vprint(scene, ' '.join(t[1:]), self.bold,
                              QtCore.Qt.white, y, offset + 2)
@@ -102,7 +108,6 @@ class View(QtGui.QGraphicsView):
             scene.addItem(item)
 
         days.add(y / (24 * HEIGHT)) # FIXME Can you just count days?
-        print days
 
     def resizeEvent(self, event):
         if event.oldSize() != QtCore.QSize(-1, -1): # First size is bollocks
@@ -114,9 +119,7 @@ class View(QtGui.QGraphicsView):
             maxdays = int(math.ceil(self.viewsize.height() / (24. * HEIGHT)))
 
             for j in range(maxdays):
-                y = j * 24 * HEIGHT
-                day = date.today() + timedelta(j)
-                self.addday(self.scene(), self.viewsize, self.days, day, y)
+                self.addday(self.scene(), self.viewsize, self.days, j)
 
 def main():
     app = QtGui.QApplication(sys.argv)
