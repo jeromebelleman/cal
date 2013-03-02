@@ -11,7 +11,7 @@ MEDIUM = '-misc-fixed-medium-r-normal--13-120-75-75-c-80-iso8859-1'
 BOLD = '-misc-fixed-bold-r-normal--13-120-75-75-c-80-iso8859-1'
 
 SCROLL = 200
-HEIGHT = 15.
+HEIGHT = 15
 
 class View(QtGui.QGraphicsView):
     def __init__(self, parent=None):
@@ -39,16 +39,25 @@ class View(QtGui.QGraphicsView):
         self.anim.setDuration(1000)
         self.anim.setEasingCurve(QtCore.QEasingCurve.OutQuad)
 
+        self.days = set()
+
     def scenesize(self):
         return self.sceneRect().size()
 
     def scroll(self, size, anim, dist):
         current = anim.currentValue()
+        end = current.y() + dist if current else dist
+
+        # FIXME Dirty
+        day = int(end / (24 * HEIGHT))
+        if day not in self.days:
+            self.addday(self.scene(), self.viewsize, self.days,
+                        date.today() + timedelta(day),
+                        day * 24 * HEIGHT)
+
+        # Scroll
         anim.stop()
-        if current:
-            anim.setEndValue(QRectF(QPointF(0, current.y() + dist), size))
-        else:
-            anim.setEndValue(QRectF(QPointF(0, dist), size))
+        anim.setEndValue(QRectF(QPointF(0, end), size))
         anim.start()
 
     def keyPressEvent(self, event):
@@ -67,43 +76,47 @@ class View(QtGui.QGraphicsView):
             scene.addItem(item)
         return i
 
+    def addday(self, scene, viewsize, days, day, y):
+        # Draw line
+        line = QtGui.QGraphicsLineItem(0, y + 5, viewsize.width(), y + 5)
+        line.setPen(QtGui.QColor(QtCore.Qt.white))
+        scene.addItem(line)
+
+        # Display day
+        t = day.strftime('%A %d %B').split()
+        offset = self.vprint(scene, t[0], self.bold, QtCore.Qt.cyan, y, 0)
+        offset = self.vprint(scene, ' '.join(t[1:]), self.bold,
+                             QtCore.Qt.white, y, offset + 2)
+
+        # Display hours
+        # self.effects = []
+        for i in range(24):
+            # effects.append(QtGui.QGraphicsBlurEffect())
+            # effects[i].setBlurRadius(8)
+
+            item = QtGui.QGraphicsTextItem('%02d:00' % i)
+            item.setDefaultTextColor(QtCore.Qt.white)
+            item.setFont(self.medium)
+            item.setPos(20, y + i * HEIGHT)
+            # items[i].setGraphicsEffect(effects[i])
+            scene.addItem(item)
+
+        days.add(y / (24 * HEIGHT)) # FIXME Can you just count days?
+        print days
+
     def resizeEvent(self, event):
         if event.oldSize() != QtCore.QSize(-1, -1): # First size is bollocks
-            viewsize = event.size()
+            self.viewsize = event.size()
 
             self.setSceneRect(QRectF(QPointF(0, 0), event.size()))
 
             # Compute how many days can fit
-            maxdays = int(math.ceil(viewsize.height() / (24 * HEIGHT)))
+            maxdays = int(math.ceil(self.viewsize.height() / (24. * HEIGHT)))
 
             for j in range(maxdays):
                 y = j * 24 * HEIGHT
-
-                # Draw line
-                self.line = QtGui.QGraphicsLineItem(0, y + 5,
-                                                    viewsize.width(), y + 5)
-                self.line.setPen(QtGui.QColor(QtCore.Qt.white))
-                self.scene().addItem(self.line)
-
-                # Display days
-                t = (date.today() + timedelta(j)).strftime('%A %d %B').split()
-                offset = self.vprint(self.scene(), t[0], self.bold,
-                                     QtCore.Qt.cyan, y, 0)
-                offset = self.vprint(self.scene(), ' '.join(t[1:]), self.bold,
-                                     QtCore.Qt.white, y, offset + 2)
-
-                # Display hours
-                # self.effects = []
-                for i in range(24):
-                    # effects.append(QtGui.QGraphicsBlurEffect())
-                    # effects[i].setBlurRadius(8)
-
-                    item = QtGui.QGraphicsTextItem('%02d:00' % i)
-                    item.setDefaultTextColor(QtCore.Qt.white)
-                    item.setFont(self.medium)
-                    item.setPos(20, y + i * HEIGHT)
-                    # items[i].setGraphicsEffect(effects[i])
-                    self.scene().addItem(item)
+                day = date.today() + timedelta(j)
+                self.addday(self.scene(), self.viewsize, self.days, day, y)
 
 def main():
     app = QtGui.QApplication(sys.argv)
