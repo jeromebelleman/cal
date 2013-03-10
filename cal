@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import argparse
 from datetime import date, timedelta
 import math
 
@@ -17,6 +18,12 @@ class View(QtGui.QGraphicsView):
     def __init__(self, parent=None):
         super(View, self).__init__(parent)
         self.setFrameStyle(0)
+
+        # Arguments
+        p = argparse.ArgumentParser()
+        p.parse_args()
+
+        print p.calendars[0]
 
         # Fonts
         fonts = {}
