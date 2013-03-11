@@ -23,7 +23,7 @@ class View(QtGui.QGraphicsView):
         p = argparse.ArgumentParser()
         p.parse_args()
 
-        print p.calendars[0]
+        # print p.calendars[0]
 
         # Fonts
         fonts = {}
@@ -85,6 +85,27 @@ class View(QtGui.QGraphicsView):
             scene.addItem(item)
         return i
 
+    def addevent(self, scene, viewsize):
+        # XXX Text and boxes all perfect - now we need to come up with rules
+
+        # Same x distance as between days and hours
+        # Set y offset such that it's centered on hour 
+        r0 = QtGui.QGraphicsRectItem(76, 11, viewsize.width() - 13 - 76, 1 * 15 + 1)
+        r1 = QtGui.QGraphicsRectItem(76, 11 + 15 * 7,
+                                     viewsize.width() - 13 - 76, 3 * 15 + 1)
+        r0.setBrush(QtGui.QColor(QtCore.Qt.red))
+        r1.setBrush(QtGui.QColor(QtCore.Qt.red))
+        scene.addItem(r0)
+        scene.addItem(r1)
+
+        t = QtGui.QGraphicsTextItem("Some random global pevent")
+        t.setDefaultTextColor(QtCore.Qt.white)
+        t.setFont(self.bold)
+        t.setPos(76, 7)
+        scene.addItem(t)
+
+
+
     def addday(self, scene, viewsize, days, day):
         if day in self.days:
             return
@@ -127,6 +148,7 @@ class View(QtGui.QGraphicsView):
 
             for j in range(maxdays):
                 self.addday(self.scene(), self.viewsize, self.days, j)
+            self.addevent(self.scene(), self.viewsize)
 
 def main():
     app = QtGui.QApplication(sys.argv)
